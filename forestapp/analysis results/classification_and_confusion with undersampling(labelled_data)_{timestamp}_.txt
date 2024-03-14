@@ -1,0 +1,37 @@
+ Training time:
+60.74149823188782 seconds (1.012358303864797 minutes)
+
+ Accuracy:
+0.9457107335267302
+
+ depth:
+29
+
+ feature importance:
+[0.03149874 0.11647169 0.10153349 0.56031913 0.04020061 0.00728346
+ 0.01806783 0.01850062 0.02176121 0.03816947 0.02324603 0.02294771]
+
+ Statistics:
+[is_fraud
+0    1842743
+1       9651
+Name: count, dtype: int64, ['training and test data size: ', (14476, 12), (4826, 12)], ['\n training count after SMOTE: ', is_fraud
+1    7250
+0    7226
+Name: count, dtype: int64], ['\n dropped features: ', ['first', 'unix_time', 'dob', 'cc_num', 'zip', 'city', 'street', 'state', 'trans_num', 'trans_date_trans_time']]]
+
+ Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.94      0.96      0.95      2425
+           1       0.95      0.94      0.94      2401
+
+    accuracy                           0.95      4826
+   macro avg       0.95      0.95      0.95      4826
+weighted avg       0.95      0.95      0.95      4826
+
+
+ Confusion Matrix:
+          Predicted 0  Predicted 1
+Actual 0         2319          106
+Actual 1          156         2245

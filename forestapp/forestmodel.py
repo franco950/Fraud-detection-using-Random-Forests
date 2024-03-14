@@ -13,6 +13,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import accuracy_score, precision_score, confusion_matrix, recall_score, f1_score
+from category_encoders import WOEEncoder
+from win10toast import ToastNotifier
+from sklearn.utils import resample
+def send_notification(message):
+    toaster = ToastNotifier()
+    toaster.show_toast("Notification", message, duration=20)
 # loaded_model = joblib.load('trained_model  with smote, Time feature removed.joblib')
 # feature_importance = loaded_model.feature_importances_
 # print(feature_importance)
@@ -26,9 +32,15 @@ from sklearn.metrics import accuracy_score, precision_score, confusion_matrix, r
 # plt.show()
 start=time.time()
 stats=[]
-csv_file_path='modelapp\creditcard.csv'
-df=pd.read_csv(csv_file_path)
-df.drop_duplicates(inplace = True)
+csv_file_path='forestapp/fraudTrain.csv'
+test_path='forestapp/fraudTest.csv'
+df1=pd.read_csv(csv_file_path)
+df2=pd.read_csv(test_path)
+
+df = pd.concat([df1, df2], ignore_index=True)
+
+# Save the combined DataFrame to a new CSV file
+df.to_csv('combined_file.csv', index=False)
 #dc=df.drop('Class',axis=1)
 print(len(df))
 # sns.pairplot(df)
@@ -48,24 +60,43 @@ print(len(df))
 # z_scores = pd.Series((df - df.mean()) / df.std())
 # outliers = df[df[z_scores.abs() > 3]]
 #print(outliers)
-stats.append(df['Class'].value_counts()) 
+stats.append(df['is_fraud'].value_counts()) 
 print(stats)
-dropped='none'#'Time'#, 'V22','V23','V24'
-#df=df.drop('Time',axis=1)
+# dropped='date,time'#'Time'#, 'V22','V23','V24'
+# df=df.drop('columns_to_drop',axis=1)
 # # df=df.drop('V24',axis=1)
 # # df=df.drop('V22', axis=1)
 # # df=df.drop('V23', axis=1)
-X = df.drop("Class", axis=1) 
-y = df['Class'] 
+columns_to_drop = ['first', 'unix_time', 'dob', 'cc_num', 'zip', 'city','street', 'state', 'trans_num', 'trans_date_trans_time']
+df=df.drop(columns_to_drop,axis=1)
+df['merchant'] = df['merchant'].apply(lambda x : x.replace('fraud_',''))
+
+df['gender'] = df['gender'].map({'F': 0, 'M': 1})
+
+
+for col in ['job','merchant', 'category', 'lat', 'last']:
+    df[col] = WOEEncoder().fit_transform(df[col],df['is_fraud'])
+
+
+No_class = df[df["is_fraud"]==0]
+yes_class = df[df["is_fraud"]==1]
+
+No_class = resample(No_class, replace=False, n_samples=len(yes_class))
+down_samples = pd.concat([yes_class, No_class], axis=0)
+
+X = down_samples.drop('is_fraud', axis=1) 
+y = down_samples['is_fraud'] 
 test_size=0.25
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-smote = SMOTE(random_state=42)
-X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
-new=pd.Series(y_train_smote).value_counts()
+new=pd.Series(y_train).value_counts()
+#smote
+# smote = SMOTE(random_state=42)
+# X_train_smote, y_train_smote = smote.fit_resample(X_train, y_train)
+# new=pd.Series(y_train_smote).value_counts()
 
 stats.append(['training and test data size: ',X_train.shape, X_test.shape] )
 stats.append(['\n training count after SMOTE: ',new])
-stats.append(['\n dropped features: ',dropped])
+stats.append(['\n dropped features: ',columns_to_drop])
 
 
 # plus=X_test
@@ -94,10 +125,10 @@ stats.append(['\n dropped features: ',dropped])
 # performance evaluation metrics 
  
 # param_grid = { 
-#     'n_estimators': [50],  
-#     'max_depth': [39]} 
+#     'n_estimators': [78,79,80],  
+#     'max_depth': [29,30,31,32]} 
 
-# rf_model = RandomForestClassifier(n_jobs=-1,random_state=42, class_weight='balanced')
+# rf_model = RandomForestClassifier(n_jobs=-1,random_state=42)
 # grid_search = GridSearchCV(rf_model,scoring='f1', param_grid=param_grid) 
 # grid_search.fit(X_train, y_train) 
 # end_time = time.time()
@@ -111,24 +142,25 @@ stats.append(['\n dropped features: ',dropped])
 # results_df['test_size']=test_size
 # results_df['execution_time_seconds'] = elapsed_time
 # # Save the results to a CSV file
-# results_df.to_csv('grid_search_results.csv', mode='a', header=not os.path.isfile('grid_search_results.csv'), index=False)
+# results_df.to_csv('grid_search_results_undersampled_labelled.csv', mode='a', header=not os.path.isfile('grid_search_results_undersampled_labelled.csv'), index=False)
 
 
 # print(grid_search.best_params_) 
 # print(f"Execution time: {elapsed_time:.2f} seconds")
 
-rf_model = RandomForestClassifier(n_jobs=-1,random_state=42)
-rf_model.fit(X_train_smote, y_train_smote) 
+rf_model = RandomForestClassifier(n_jobs=-1,random_state=42,max_depth=30,n_estimators=80)
+rf_model.fit(X_train, y_train) 
 feature_importance=rf_model.feature_importances_
 end_time = time.time()
 # # Calculate the elapsed time
 max_depths = [estimator.tree_.max_depth for estimator in rf_model.estimators_]
 max_depth_used = max(max_depths)
 
+
 print(f"Highest Maximum Depth Used: {max_depth_used}")
 elapsed_time = end_time - start
 timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-joblib.dump(rf_model, f'modelapp\\new models\\trainedmodel_{timestamp}_.joblib')
+joblib.dump(rf_model, f'forestapp\\new models\\trainedmodel_labelled_undersampled_best_performing_{timestamp}_.joblib')
 prediction=rf_model.predict(X_test)
 report = classification_report(y_test, prediction)
 print(report)
@@ -139,7 +171,7 @@ accuracy=accuracy_score(y_test,prediction)
 conf_matrix_df = pd.DataFrame(matrix, columns=['Predicted 0', 'Predicted 1'], index=['Actual 0', 'Actual 1'])
 
 # Save both classification report and confusion matrix to a single text file
-with open('modelapp\\analysis results\\classification_and_confusion with smote.txt', 'w') as report_file:
+with open('forestapp\\analysis results\\classification_and_confusion with undersampling(labelled_data)_best_performing_{timestamp}_.txt', 'w') as report_file:
         
     report_file.write(" Training time:\n")
     report_file.write(f"{elapsed_time} seconds ({elapsed_time/60} minutes)\n\n")
@@ -149,6 +181,12 @@ with open('modelapp\\analysis results\\classification_and_confusion with smote.t
 
     report_file.write(" depth:\n")
     report_file.write(f"{max_depth_used}\n\n")
+
+    report_file.write(" trees:\n")
+    report_file.write(f"{80}\n\n")
+
+    report_file.write(" columns used:\n")
+    report_file.write(f"{df.columns}\n\n")
 
     report_file.write(" feature importance:\n")
     report_file.write(f"{feature_importance}\n\n")
@@ -161,3 +199,4 @@ with open('modelapp\\analysis results\\classification_and_confusion with smote.t
 
     report_file.write(" Confusion Matrix:\n")
     report_file.write(f"{conf_matrix_df.to_string()}\n")
+send_notification("Model trained successfully")

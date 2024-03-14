@@ -1,0 +1,45 @@
+ Training time:
+150.08138346672058 seconds (2.50135639111201 minutes)
+
+ Accuracy:
+0.9498549523414836
+
+ depth:
+30
+
+ trees:
+80
+
+ columns used:
+Index(['Unnamed: 0', 'merchant', 'category', 'amt', 'last', 'gender', 'lat',
+       'long', 'city_pop', 'job', 'merch_lat', 'merch_long', 'is_fraud'],
+      dtype='object')
+
+ feature importance:
+[0.03072042 0.11068147 0.11063443 0.56074032 0.03889902 0.00718927
+ 0.01737205 0.01768893 0.02179464 0.03865727 0.0225432  0.02307899]
+
+ Statistics:
+[is_fraud
+0    1842743
+1       9651
+Name: count, dtype: int64, ['training and test data size: ', (14476, 12), (4826, 12)], ['\n training count after SMOTE: ', is_fraud
+1    7250
+0    7226
+Name: count, dtype: int64], ['\n dropped features: ', ['first', 'unix_time', 'dob', 'cc_num', 'zip', 'city', 'street', 'state', 'trans_num', 'trans_date_trans_time']]]
+
+ Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.94      0.96      0.95      2425
+           1       0.96      0.94      0.95      2401
+
+    accuracy                           0.95      4826
+   macro avg       0.95      0.95      0.95      4826
+weighted avg       0.95      0.95      0.95      4826
+
+
+ Confusion Matrix:
+          Predicted 0  Predicted 1
+Actual 0         2333           92
+Actual 1          150         2251
